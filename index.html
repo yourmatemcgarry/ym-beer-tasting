@@ -1,4 +1,21 @@
 <title>Tasting Mate</title>
+
+<!-- &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+     LIVE FEED SETTING  &#8212;  this is the only thing you need to edit.
+
+     Paste your Firebase Realtime Database URL between the quotes to
+     turn on live results. Leave it empty and the app still works,
+     but every phone keeps its own notes and nothing reaches your desk.
+
+     It looks like:
+       https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app
+
+     Open  #/setup  in the app afterwards to check it worked.
+     &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
+<script>
+  window.TASTING_MATE_DB = "";
+</script>
+
 <script>(function(){if(!document.querySelector('meta[name="viewport"]')){var m=document.createElement("meta");m.name="viewport";m.content="width=device-width, initial-scale=1, viewport-fit=cover";document.head.appendChild(m);}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -320,6 +337,18 @@ img{max-width:100%}
 .inp{width:100%;background:var(--night-2);border:1.5px solid var(--line);border-radius:12px;padding:14px 15px;font-size:16px;color:var(--cream)}
 .inp:focus{border-color:var(--teal);outline:none}
 .inp::placeholder{color:var(--dim-2)}
+
+.setup{min-height:100dvh;display:grid;place-items:start center;padding:32px 20px 60px}
+.setupcard{width:100%;max-width:620px}
+.chk{display:grid;grid-template-columns:30px 1fr;gap:13px;align-items:start;background:var(--night-2);border:1.5px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+.chk .dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--night-3);color:var(--dim-2);font-size:15px;font-weight:800}
+.chk.ok .dot{background:rgba(141,198,63,.2);color:var(--sally)}
+.chk.bad .dot{background:rgba(255,117,0,.18);color:var(--coral)}
+.chk b{display:block;font-family:var(--f-disp);font-size:16px;line-height:1.2;margin-bottom:3px}
+.chk span{display:block;font-size:13.5px;color:var(--dim);line-height:1.5;word-break:break-word}
+.chk.ok b{color:var(--sally)}
+.chk.bad b{color:var(--coral)}
+.setupcard code{background:var(--night-3);padding:2px 6px;border-radius:5px;font-size:.92em}
 
 /* &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; printable QR poster &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; */
 .qrpage{min-height:100dvh;display:grid;place-items:center;padding:28px 20px}
@@ -666,7 +695,7 @@ const uid = (() => { let v = LS.get('uid'); if (!v) { v = 'g' + Math.random().to
 
 const S = {
   role: null,
-  db: null, room: null, dbTried: false,
+  live: null, dbTried: false, liveError: null,
   me: LS.get('me', { id: uid, name: '' }),
   beers: LS.get('beers', null) || CORE_RANGE.map(b => ({ ...b })),
   session: LS.get('session', null) || newSession(),
@@ -701,56 +730,144 @@ function cues() {
   return c;
 }
 const cue = () => cues()[Math.max(0, Math.min(S.session.cue || 0, cues().length - 1))] || { k: 'lobby' };
-const beerAt = bi => S.beers.find(b => b.id === (S.session.lineup || [])[bi]) || S.beers[0];
+const beerBook = () => {
+  const sb = S.session.beers;
+  if (sb && Object.keys(sb).length) return Object.keys(sb).map(id => ({ id, ...sb[id] }));
+  return S.beers;
+};
+const beerById = id => beerBook().find(b => b.id === id) || S.beers.find(b => b.id === id);
+const beerAt = bi => beerById((S.session.lineup || [])[bi]) || beerBook()[0] || S.beers[0];
 const CHAPTER = { lobby: 'Welcome', story: 'The Your Mates story', 'howto-intro': 'How to taste', howto: 'How to taste', nose: 'How to taste', 'nose-results': 'How to taste', glossary: 'How to taste', wrap: 'Wrap-up', cheers: 'Wrap-up' };
 
-/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 persistence \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 live backend \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   Two ways to go live, tried in this order:
+     1. A Firebase Realtime Database URL in TASTING_MATE_DB (works on any host)
+     2. The claude.ai artifact data layer (only inside claude.ai)
+   Neither = solo mode: every phone keeps its own notes and nothing syncs.
+
+   The beer library always lives in this browser. The beers for tonight
+   travel inside the session state, so guests get the right lineup without
+   needing the library. */
+
+const DB_URL = () => String((typeof window !== 'undefined' && window.TASTING_MATE_DB) || '').trim().replace(/\/+$/, '');
+const ROOM = 'main';
+
+function setDeep(obj, path, val) {
+  const parts = String(path).split('/').filter(Boolean);
+  if (!parts.length) return val;
+  let o = obj;
+  for (let i = 0; i < parts.length - 1; i++) { if (typeof o[parts[i]] !== 'object' || o[parts[i]] === null) o[parts[i]] = {}; o = o[parts[i]]; }
+  const last = parts[parts.length - 1];
+  if (val === null) delete o[last]; else o[last] = val;
+  return obj;
+}
+
+function firebaseLive(base) {
+  const url = p => base + '/s/' + ROOM + '/' + p + '.json';
+  const put = (p, d) => fetch(url(p), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d === undefined ? null : d) })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r; });
+  function stream(p, cb) {
+    let es;
+    try { es = new EventSource(url(p)); } catch (e) { return; }
+    const on = e => { try { const m = JSON.parse(e.data); cb(m.path, m.data); } catch (err) {} };
+    es.addEventListener('put', on);
+    es.addEventListener('patch', on);
+    es.addEventListener('cancel', () => { S.liveError = 'The database rejected the connection. Check your rules.'; render(); });
+    es.onerror = () => { /* EventSource retries by itself */ };
+  }
+  return {
+    kind: 'firebase',
+    onState(cb) { let cur = null; stream('state', (path, data) => { cur = (path === '/') ? data : setDeep(cur || {}, path, data); cb(cur); }); },
+    setState(o) { return put('state', o); },
+    onGuests(cb) { let g = {}; stream('guests', (path, data) => { g = (path === '/') ? (data || {}) : setDeep(g, path, data); cb(Object.keys(g).map(id => ({ id, ...g[id] }))); }); },
+    setGuest(id, o) { return put('guests/' + id, o); },
+    clearGuests() { return put('guests', null); },
+    sendCheers(n, from) { return put('cheers', { t: Date.now(), n, from }); },
+    onCheers(cb) { let first = true; stream('cheers', (p, d) => { if (first) { first = false; return; } if (d && d.t) cb(d); }); },
+    test() { return put('ping', { t: Date.now() }).then(() => fetch(url('ping')).then(r => r.json())); }
+  };
+}
+
+function claudeLive(db, room) {
+  return {
+    kind: 'claude',
+    onState(cb) { db.doc('session/state').onSnapshot(s => cb(s.exists ? s.data() : null), () => {}); },
+    setState(o) { return db.doc('session/state').set(o); },
+    onGuests(cb) { db.collection('guests').limit(300).onSnapshot(s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))), () => {}); },
+    setGuest(id, o) { return db.doc('guests/' + id).set(o); },
+    clearGuests() { return db.collection('guests').get().then(s => Promise.all(s.docs.map(d => db.doc('guests/' + d.id).delete()))); },
+    sendCheers(n, from) { try { room && room.emit('cheers', { n, from }); } catch (e) {} return Promise.resolve(); },
+    onCheers(cb) { try { room && room.on('cheers', cb); } catch (e) {} },
+    test() { return db.doc('session/ping').set({ t: Date.now() }).then(() => ({ ok: true })); }
+  };
+}
 
 async function connect() {
   if (S.dbTried) return; S.dbTried = true;
-  try {
-    S.db = await claude.use('db');
-    S.room = await claude.use('room');
-  } catch { /* design for absence */ }
-  if (S.db) {
-    S.connected = true;
-    S.db.collection('beers').onSnapshot(snap => {
-      if (!snap.empty) {
-        S.beers = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order || 0) - (b.order || 0));
-        LS.set('beers', S.beers);
-        render();
-      }
-    }, () => {});
-    S.db.doc('session/state').onSnapshot(snap => {
-      if (snap.exists) { S.session = { ...newSession(), ...snap.data() }; LS.set('session', S.session); render(); }
-    }, () => {});
-    S.db.collection('guests').limit(300).onSnapshot(snap => {
-      S.guests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (S.role === 'screen' || S.role === 'desk') render();
-    }, () => {});
+
+  const base = DB_URL();
+  if (base) {
+    S.live = firebaseLive(base);
+  } else {
+    let db = null, room = null;
+    try { db = await claude.use('db'); room = await claude.use('room'); } catch (e) { /* design for absence */ }
+    if (db) S.live = claudeLive(db, room);
   }
-  if (S.room) {
-    S.room.on('cheers', m => rain(m && m.n ? m.n : 1));
-    S.room.onPeers(p => { S.peers = p || []; });
-    if (S.role === 'guest' && S.me.name) S.room.presence({ name: S.me.name });
+
+  if (S.live) {
+    S.connected = true;
+    S.live.onState(st => {
+      if (!st) return;
+      S.session = { ...newSession(), ...st };
+      LS.set('session', S.session);
+      render();
+    });
+    S.live.onGuests(list => { S.guests = list || []; if (S.role === 'desk' || S.role === 'screen') render(); });
+    S.live.onCheers(m => rain(m && m.n ? m.n : 3));
   }
   render();
+}
+
+/* the beers for tonight ride along inside the session so guests don't
+   need the library; images are stripped to keep the payload small */
+function lineupPayload(lineup) {
+  const out = {};
+  (lineup || []).forEach(id => {
+    const b = S.beers.find(x => x.id === id);
+    if (!b) return;
+    const { image, ...rest } = b;
+    out[id] = rest;
+  });
+  return out;
 }
 
 async function pushSession(patch) {
   S.session = { ...S.session, ...patch };
+  if (patch.lineup || !S.session.beers) S.session.beers = lineupPayload(S.session.lineup);
   LS.set('session', S.session);
   render();
-  if (S.db) { try { await S.db.doc('session/state').set(S.session); } catch (e) { flash('Could not sync to the room \u2014 the screen is still driving locally.', true); } }
+  if (S.live) {
+    try { await S.live.setState(S.session); }
+    catch (e) { S.liveError = 'Could not reach the database. The desk is still driving locally.'; render(); }
+  }
 }
 
 let mineT;
 function pushMine() {
-  if (!S.db || !S.me.name) return;
+  if (!S.live || !S.me.name) return;
   clearTimeout(mineT);
   mineT = setTimeout(() => {
-    S.db.doc('guests/' + S.me.id).set({ name: S.me.name, at: Date.now(), ...S.mine }).catch(() => {});
+    S.live.setGuest(S.me.id, { name: S.me.name, at: Date.now(), ...S.mine }).catch(() => {});
   }, 260);
+}
+
+async function newRoom() {
+  S.mine = { scores: {}, aromas: {}, trivia: {}, nose: null, cheers: 0 };
+  LS.set('mine', S.mine);
+  S.guests = [];
+  if (S.live) { try { await S.live.clearGuests(); } catch (e) {} }
+  await pushSession({ cue: 0, startedAt: Date.now() });
+  flash('Fresh session \u2014 previous scores cleared');
 }
 
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 aggregates \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
@@ -758,7 +875,7 @@ function pushMine() {
 function scoreStats(beerId) {
   const counts = [0, 0, 0, 0, 0]; let n = 0, sum = 0;
   S.guests.forEach(g => { const v = g.scores && g.scores[beerId]; if (v >= 1 && v <= 5) { counts[v - 1]++; n++; sum += v; } });
-  if (S.role === 'screen' && !S.db) { const v = S.mine.scores[beerId]; if (v) { counts[v - 1]++; n++; sum += v; } }
+  if (!S.live) { const v = S.mine.scores[beerId]; if (v) { counts[v - 1]++; n++; sum += v; } }
   return { counts, n, avg: n ? sum / n : 0 };
 }
 function aromaStats(beerId) {
@@ -798,12 +915,12 @@ function rain(n) {
 
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 router \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 
-const ROUTES = { '#/desk': 'desk', '#/screen': 'screen', '#/guest': 'guest', '#/library': 'library', '#/qr': 'qr' };
+const ROUTES = { '#/desk': 'desk', '#/screen': 'screen', '#/guest': 'guest', '#/library': 'library', '#/qr': 'qr', '#/setup': 'setup' };
 const guestURL = () => location.origin + location.pathname + '#/guest';
 const goHash = h => { if (location.hash === h) route(); else location.hash = h; };
 function route() {
   S.role = ROUTES[location.hash] || null;
-  if (S.role === 'desk' || S.role === 'library' || S.role === 'screen') LS.set('staff', 1);
+  if (S.role === 'desk' || S.role === 'library' || S.role === 'screen' || S.role === 'setup') LS.set('staff', 1);
   render();
 }
 window.addEventListener('hashchange', route);
@@ -815,7 +932,7 @@ window.addEventListener('resize', () => {
 
 function render() {
   const v = S.role === 'desk' ? vDesk() : S.role === 'screen' ? vScreen() : S.role === 'guest' ? vGuest()
-    : S.role === 'library' ? vLibrary() : S.role === 'qr' ? vQR() : vPick();
+    : S.role === 'library' ? vLibrary() : S.role === 'qr' ? vQR() : S.role === 'setup' ? vSetup() : vPick();
   app.innerHTML = v;
   if (S.role === 'screen') afterScreen();
   if (S.role === 'qr') makeQR('qrbig', 300);
@@ -848,7 +965,7 @@ function vPick() {
           ].map((x, i) => `<li style="display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:13.5px;line-height:1.45;color:var(--dim)"><b class="disp" style="color:var(--teal-lt)">${i + 1}</b><span>${x}</span></li>`).join('')}
       </ol>
     </div>
-    <p class="note">${S.connected ? 'Connected &mdash; phones and your desk will stay in sync.' : 'Running standalone. Each phone keeps its own notes; nothing syncs back to your desk.'}</p>
+    <p class="note">${S.connected ? 'Connected &mdash; phones and your desk are in sync.' : 'Running solo &mdash; each phone keeps its own notes. <button data-nav="#/setup" style="color:var(--teal-lt);text-decoration:underline;font:inherit">Check the connection</button>'}</p>
   </div></div>`;
 }
 
@@ -1095,6 +1212,50 @@ function makeQR(id, size) {
 }
 function afterScreen() { makeQR('qr', 240); }
 
+function vSetup() {
+  const base = DB_URL();
+  const r = S.liveTest || {};
+  const row = (ok, label, detail) => `<div class="chk ${ok === null ? '' : ok ? 'ok' : 'bad'}">
+    <span class="dot">${ok === null ? '&middot;' : ok ? '&#10003;' : '&times;'}</span>
+    <div><b>${label}</b>${detail ? `<span>${detail}</span>` : ''}</div></div>`;
+  return `<div class="setup"><div class="setupcard fade">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:18px">${viewNav('#/setup')}</div>
+    <span class="kick">Connection check</span>
+    <h1 class="disp" style="font-size:clamp(28px,4vw,40px);margin:8px 0 22px">Is the live feed working?</h1>
+
+    ${row(!!base, base ? 'Database address is set' : 'No database address', base ? esc(base) : 'Open index.html, find TASTING_MATE_DB near the top, and paste your database URL between the quotes.')}
+    ${row(S.live ? true : null, S.live ? 'Live layer started (' + S.live.kind + ')' : 'Running solo', S.live ? 'The page is listening for other devices.' : 'Every phone keeps its own notes. Nothing syncs.')}
+    ${row(r.write === undefined ? null : r.write, 'Can write to the database', r.writeMsg || 'Not tested yet.')}
+    ${row(r.read === undefined ? null : r.read, 'Can read it back', r.readMsg || 'Not tested yet.')}
+    ${row(S.guests.length > 0 ? true : null, S.guests.length ? S.guests.length + ' device' + (S.guests.length === 1 ? '' : 's') + ' connected' : 'No tasters yet', S.guests.length ? S.guests.map(g => esc(g.name || '?')).join(', ') : 'Open the guest view on your phone and join to test this one.')}
+
+    <div class="qractions" style="justify-content:flex-start">
+      <button class="btn" data-testlive>${r.running ? 'Testing&hellip;' : 'Run the test'}</button>
+      <button class="btn ghost" data-nav="#/desk">Back to the desk</button>
+    </div>
+    ${S.liveError ? `<div class="banner" style="margin-top:20px"><b>Last error</b>${esc(S.liveError)}</div>` : ''}
+    <div class="card" style="margin-top:22px"><span class="kick">If the write test fails</span>
+      <p style="margin:8px 0 0;font-size:14.5px;line-height:1.55;color:var(--dim)">Nine times out of ten it&rsquo;s the database rules. In the Firebase console go to <b>Realtime Database &rarr; Rules</b> and make sure they allow reads and writes under <code>/s</code>. The README has the exact block to paste.</p></div>
+  </div></div>`;
+}
+
+async function runLiveTest() {
+  S.liveTest = { running: true }; render();
+  const res = { running: false };
+  if (!S.live) { res.write = false; res.writeMsg = 'No live layer to test.'; res.read = false; res.readMsg = 'No live layer to test.'; }
+  else {
+    try { await S.live.test(); res.write = true; res.writeMsg = 'Wrote a test value successfully.'; }
+    catch (e) { res.write = false; res.writeMsg = String(e && e.message || e); }
+    if (res.write) {
+      try {
+        const back = await S.live.test();
+        res.read = !!back; res.readMsg = back ? 'Read the value straight back.' : 'Wrote, but read nothing back.';
+      } catch (e) { res.read = false; res.readMsg = String(e && e.message || e); }
+    } else { res.read = false; res.readMsg = 'Skipped &mdash; the write failed first.'; }
+  }
+  S.liveTest = res; render();
+}
+
 function vQR() {
   return `<div class="qrpage"><div class="qrcard fade">
     <div style="display:flex;justify-content:flex-end;margin-bottom:14px">${viewNav('#/qr')}</div>
@@ -1118,7 +1279,7 @@ function vQR() {
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 control desk \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 
 function viewNav(cur) {
-  const items = [['#/desk', 'Desk'], ['#/qr', 'Join code'], ['#/screen', 'Big screen'], ['#/guest', 'Guest view'], ['#/library', 'Library']];
+  const items = [['#/desk', 'Desk'], ['#/qr', 'Join code'], ['#/screen', 'Big screen'], ['#/guest', 'Guest view'], ['#/library', 'Library'], ['#/setup', 'Check']];
   return `<span class="views">
     <button class="home" data-nav="#/" title="All views" aria-label="All views">&#9776;</button>
     ${items.map(([h, l]) => `<button class="${cur === h ? 'cur' : ''}" data-nav="${h}">${l}</button>`).join('')}
@@ -1190,7 +1351,7 @@ function vDesk() {
       <span class="sp"></span>
       <span class="modebar">Phones only
         <button class="ctlbtn ${phones ? 'on' : ''}" data-mode="${phones ? 'screen' : 'phones'}">${phones ? 'ON' : 'OFF'}</button></span>
-      ${S.connected ? `<span class="live"><i></i>${live} ${live === 1 ? 'phone' : 'phones'}</span>` : '<span class="pill">Not connected</span>'}
+      ${S.connected ? `<span class="live"><i></i>${live} ${live === 1 ? 'phone' : 'phones'}</span>` : '<button class="pill" data-nav="#/setup" style="border:1.5px solid var(--coral);color:#FF9E4D;cursor:pointer">Solo &mdash; check</button>'}
       ${viewNav('#/desk')}
     </header>
     <div class="desk-body${S.wide ? ' wide' : ''}">
@@ -1200,6 +1361,7 @@ function vDesk() {
         <div class="navrow">
           <button data-cue="-1">&lsaquo; Back</button>
           <button class="go" data-cue="1">Next &rsaquo;</button>
+          <button data-newroom title="Clear the room and start again">New session</button>
         </div>
         <div style="font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim-2);margin-bottom:10px">
           ${idx + 1} of ${list.length} &middot; ${CUE_LABEL[c.k] || c.k}
@@ -1437,6 +1599,9 @@ function vLibrary() {
       <span class="pill">${(S.session.lineup || []).length} in tonight&rsquo;s lineup</span>
       <button class="ctlbtn" data-newbeer>+ New beer</button>
       <button class="ctlbtn" data-seed>Load core range</button>
+      <button class="ctlbtn" data-exportbeers>Export</button>
+      <button class="ctlbtn" data-importbeers>Import</button>
+      <input type="file" id="beersin" accept="application/json,.json" hidden>
       ${viewNav('#/library')}
     </header>
     <div class="lib-body">
@@ -1498,6 +1663,21 @@ function afterLibrary() {
       } catch { flash('Could not read that image', true); }
     };
   }
+  const bi = $('#beersin');
+  if (bi) bi.onchange = () => {
+    const f = bi.files && bi.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      try {
+        const list = JSON.parse(fr.result);
+        if (!Array.isArray(list)) throw new Error('not a list');
+        let added = 0;
+        list.forEach(b => { if (b && b.id) { S.beers = S.beers.filter(x => x.id !== b.id).concat([b]); added++; } });
+        LS.set('beers', S.beers); render(); flash(added + ' beers imported');
+      } catch (e) { flash('That file didn\u2019t look like a beer library', true); }
+    };
+    fr.readAsText(f);
+  };
   const nc = $('#newchip');
   if (nc) nc.onkeydown = e => {
     if (e.key !== 'Enter') return;
@@ -1505,6 +1685,22 @@ function afterLibrary() {
     const b = S.beers.find(x => x.id === S.libSel); if (!b) return;
     b.chips = (b.chips || []).concat(v); saveBeer(b); render();
   };
+}
+
+async function exportBeers() {
+  const data = JSON.stringify(S.beers, null, 2);
+  const filename = 'tasting-mate-beers.json';
+  try {
+    const dl = await claude.use('downloads');
+    if (dl) { await dl.save({ filename, data }); flash('Library exported'); return; }
+  } catch (e) { /* not inside claude.ai, or declined */ }
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    flash('Library exported');
+  } catch (e) { flash('Could not export here \u2014 try the hosted version', true); }
 }
 
 function shrink(file) {
@@ -1531,17 +1727,13 @@ async function saveBeer(b) {
   S.beers = S.beers.map(x => x.id === b.id ? b : x);
   if (!S.beers.find(x => x.id === b.id)) S.beers.push(b);
   LS.set('beers', S.beers);
-  if (S.db) {
-    const { id, ...body } = b;
-    try { await S.db.doc('beers/' + id).set(body); }
-    catch (e) { flash(e && e.code === 'invalid_argument' ? 'Saved locally \u2014 you need edit access to change the shared library.' : 'Saved locally only.', true); }
-  }
+  if ((S.session.lineup || []).indexOf(b.id) > -1) await pushSession({ beers: lineupPayload(S.session.lineup) });
 }
 
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 events \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 
 document.addEventListener('click', async e => {
-  const t = e.target.closest('[data-nav],[data-cue],[data-full],[data-jump],[data-join],[data-aroma],[data-score],[data-triv],[data-nose],[data-cheers],[data-sel],[data-lineup],[data-newbeer],[data-seed],[data-save],[data-del],[data-delchip],[data-clearimg]');
+  const t = e.target.closest('[data-nav],[data-cue],[data-goto],[data-mode],[data-newroom],[data-testlive],[data-full],[data-jump],[data-join],[data-aroma],[data-score],[data-triv],[data-nose],[data-cheers],[data-sel],[data-lineup],[data-newbeer],[data-seed],[data-save],[data-del],[data-delchip],[data-clearimg],[data-exportbeers],[data-importbeers]');
   if (!t) return;
 
   if (t.dataset.nav) { goHash(t.dataset.nav); return; }
@@ -1552,13 +1744,19 @@ document.addEventListener('click', async e => {
   if (t.dataset.cue) { step(+t.dataset.cue); return; }
   if (t.dataset.goto) { pushSession({ cue: +t.dataset.goto }); return; }
   if (t.dataset.mode) { pushSession({ mode: t.dataset.mode }); return; }
+  if (t.hasAttribute('data-newroom')) {
+    if (S.guests.length && !confirm('Clear ' + S.guests.length + ' taster' + (S.guests.length === 1 ? '' : 's') + ' and start a fresh session?')) return;
+    newRoom(); return;
+  }
+  if (t.hasAttribute('data-testlive')) { runLiveTest(); return; }
+  if (t.hasAttribute('data-exportbeers')) { exportBeers(); return; }
+  if (t.hasAttribute('data-importbeers')) { const f = $('#beersin'); if (f) f.click(); return; }
   if (t.dataset.jump === 'lineup') { location.hash = '#/library'; return; }
 
   if (t.hasAttribute('data-join')) {
     const v = ($('#nm').value || '').trim().slice(0, 18);
     if (!v) { flash('Pop a name in first', true); return; }
     S.me.name = v; LS.set('me', S.me);
-    if (S.room) { try { S.room.presence({ name: v }); } catch {} }
     pushMine(); render(); return;
   }
   if (t.dataset.aroma) {
@@ -1571,7 +1769,7 @@ document.addEventListener('click', async e => {
   if (t.dataset.nose) { S.mine.nose = +t.dataset.nose; saveMine(); render(); return; }
   if (t.hasAttribute('data-cheers')) {
     S.mine.cheers = (S.mine.cheers || 0) + 1; saveMine(); rain(3);
-    if (S.room) { try { S.room.emit('cheers', { n: 3, from: S.me.name }); } catch {} }
+    if (S.live) { try { S.live.sendCheers(3, S.me.name); } catch (e) {} }
     return;
   }
 
@@ -1607,7 +1805,6 @@ document.addEventListener('click', async e => {
     const id = t.dataset.del;
     S.beers = S.beers.filter(x => x.id !== id); LS.set('beers', S.beers); S.libSel = null;
     const ln = (S.session.lineup || []).filter(x => x !== id);
-    if (S.db) { try { await S.db.doc('beers/' + id).delete(); } catch {} }
     await pushSession({ lineup: ln });
     flash('Deleted'); return;
   }
@@ -1624,7 +1821,7 @@ document.addEventListener('click', async e => {
 function pickTrivia(k, total) { return (k * 3 + 1) % TRIVIA.length; }
 function step(d) {
   const list = cues();
-  if (d === 0) { pushSession({ cue: 0, startedAt: Date.now() }); return; }
+  if (d === 0) { newRoom(); return; }
   const n = Math.max(0, Math.min((S.session.cue || 0) + d, list.length - 1));
   pushSession({ cue: n });
 }
